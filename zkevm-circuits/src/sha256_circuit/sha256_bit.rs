@@ -187,7 +187,7 @@ pub struct Sha256BitConfig<F> {
 }
 
 /// Sha256BitCircuit
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct Sha256BitCircuit<F: Field> {
     witness: Vec<ShaRow<F>>,
     size: usize,

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "zkevm-circuits",
+    "eth-types"
 ]
 
 [patch.crates-io]
