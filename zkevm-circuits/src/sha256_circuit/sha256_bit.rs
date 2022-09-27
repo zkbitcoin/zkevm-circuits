@@ -758,11 +758,16 @@ impl<F: Field> Sha256BitConfig<F> {
         layouter.assign_region(
             || "assign sha256 data",
             |mut region| {
-                witness
+                let vec_vecs = witness
                     .iter()
                     .enumerate()
                     .map(|(offset, sha256_row)| self.set_row(&mut region, offset, sha256_row))
-                    .collect::<Result<Vec<Vec<AssignedCell<F, F>>>, Error>>()
+                    .collect::<Result<Vec<Vec<AssignedCell<F, F>>>, Error>>()?;
+                let filtered = vec_vecs
+                    .into_iter()
+                    .filter(|vec| vec.len() > 0)
+                    .collect::<Vec<Vec<AssignedCell<F, F>>>>();
+                Ok(filtered)
             },
         )
     }
@@ -886,13 +891,13 @@ impl<F: Field> Sha256BitConfig<F> {
         let mut hash_cells = Vec::with_capacity(NUM_BYTES_FINAL_HASH);
         if !row.is_final || round != NUM_ROUNDS + 7 {
             for idx in 0..(NUM_BYTES_FINAL_HASH) {
-                let cell = region.assign_advice(
+                region.assign_advice(
                     || format!("final hash word at {}", idx),
                     self.final_hash_bytes[idx],
                     offset,
                     || Value::known(F::from(0u64)),
                 )?;
-                hash_cells.push(cell);
+                //hash_cells.push(cell);
             }
         } else {
             for (idx, byte) in row.final_hash_bytes.iter().enumerate() {
@@ -1205,9 +1210,12 @@ mod tests {
             config: Self::Config,
             layouter: impl Layouter<F>,
         ) -> Result<(), Error> {
-            let mut sha256chip = Sha256BitChip::new(config.clone());
+            let sha256chip = Sha256BitChip::new(config.clone());
             //sha256chip.generate_witness(&self.inputs);
-            sha256chip.digest(layouter, &self.inputs)?;
+            let cells_vec = sha256chip.digest(layouter, &self.inputs)?;
+            for (j, cell) in cells_vec[0].iter().enumerate() {
+                cell.value().map(|f| println!("j {}, val {:?}", j, f));
+            }
             Ok(())
         }
     }
