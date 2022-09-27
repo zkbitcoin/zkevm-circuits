@@ -1,15 +1,6 @@
 [workspace]
 members = [
     "zkevm-circuits",
-    "bus-mapping",
-    "geth-utils",
-    "keccak256",
-    "gadgets",
-    "integration-tests",
-    "circuit-benchmarks",
-    "eth-types",
-    "external-tracer",
-    "mock"
 ]
 
 [patch.crates-io]
