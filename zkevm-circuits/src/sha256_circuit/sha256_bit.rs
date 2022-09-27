@@ -190,7 +190,6 @@ pub struct Sha256BitConfig<F> {
 #[derive(Clone, Debug)]
 pub struct Sha256BitChip<F: Field> {
     witness: Vec<ShaRow<F>>,
-    size: usize,
     config: Sha256BitConfig<F>,
 }
 
@@ -202,19 +201,18 @@ impl<F: Field> Sha256BitChip<F> {
 
 impl<F: Field> Sha256BitChip<F> {
     /// Creates a new circuit instance
-    pub fn new(size: usize, config: Sha256BitConfig<F>) -> Self {
+    pub fn new(config: Sha256BitConfig<F>) -> Self {
         Sha256BitChip {
             witness: Vec::new(),
-            size,
             config,
         }
     }
 
     /// The number of sha256 permutations that can be done in this circuit
-    pub fn capacity(&self) -> usize {
+    /*pub fn capacity(&self) -> usize {
         // Subtract one for unusable rows
         self.size / (NUM_ROUNDS + 8) - 1
-    }
+    }*/
 
     /// Given the input, returns the assigned cells for the hash result.
     pub fn digest(
@@ -223,7 +221,7 @@ impl<F: Field> Sha256BitChip<F> {
         inputs: &[Vec<u8>],
     ) -> Result<Vec<Vec<AssignedCell<F, F>>>, Error> {
         let witness = multi_sha256(inputs, Sha256BitChip::r());
-        self.config.assign(layouter, self.size, &witness)
+        self.config.assign(layouter, &witness)
     }
 
     /// Sets the witness using the data to be hashed
@@ -758,7 +756,6 @@ impl<F: Field> Sha256BitConfig<F> {
     fn assign(
         &self,
         mut layouter: impl Layouter<F>,
-        _size: usize,
         witness: &[ShaRow<F>],
     ) -> Result<Vec<Vec<AssignedCell<F, F>>>, Error> {
         layouter.assign_region(
@@ -1211,9 +1208,9 @@ mod tests {
             config: Self::Config,
             layouter: impl Layouter<F>,
         ) -> Result<(), Error> {
-            let mut sha256chip = Sha256BitChip::new(2usize.pow(self.k), config.clone());
+            let mut sha256chip = Sha256BitChip::new(config.clone());
             sha256chip.generate_witness(&self.inputs);
-            config.assign(layouter, sha256chip.size, &sha256chip.witness)?;
+            config.assign(layouter, &sha256chip.witness)?;
             Ok(())
         }
     }
