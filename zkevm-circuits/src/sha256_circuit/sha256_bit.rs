@@ -7,7 +7,7 @@ use crate::{
 use eth_types::Field;
 use gadgets::util::{and, select, sum, xor};
 use halo2_proofs::{
-    circuit::{Layouter, Region, SimpleFloorPlanner, Value},
+    circuit::{AssignedCell, Layouter, Region, SimpleFloorPlanner, Value},
     plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Expression, Fixed, VirtualCells},
     poly::Rotation,
 };
@@ -254,7 +254,9 @@ impl<F: Field> Sha256BitConfig<F> {
         let data_rlc = hash_table.input_rlc;
         let hash_rlc = hash_table.output_rlc;
         let final_hash_bytes = array_init::array_init(|_| meta.advice_column());
-
+        for col in final_hash_bytes.into_iter() {
+            meta.enable_equality(col);
+        }
         // State bits
         let mut w_ext = vec![0u64.expr(); NUM_BITS_PER_WORD_W];
         let mut w_2 = vec![0u64.expr(); NUM_BITS_PER_WORD];
@@ -748,14 +750,15 @@ impl<F: Field> Sha256BitConfig<F> {
         mut layouter: impl Layouter<F>,
         _size: usize,
         witness: &[ShaRow<F>],
-    ) -> Result<(), Error> {
+    ) -> Result<Vec<Vec<AssignedCell<F, F>>>, Error> {
         layouter.assign_region(
             || "assign sha256 data",
             |mut region| {
-                for (offset, sha256_row) in witness.iter().enumerate() {
-                    self.set_row(&mut region, offset, sha256_row)?;
-                }
-                Ok(())
+                witness
+                    .iter()
+                    .enumerate()
+                    .map(|(offset, sha256_row)| self.set_row(&mut region, offset, sha256_row))
+                    .collect::<Result<Vec<Vec<AssignedCell<F, F>>>, Error>>()
             },
         )
     }
@@ -765,7 +768,7 @@ impl<F: Field> Sha256BitConfig<F> {
         region: &mut Region<'_, F>,
         offset: usize,
         row: &ShaRow<F>,
-    ) -> Result<(), Error> {
+    ) -> Result<Vec<AssignedCell<F, F>>, Error> {
         let round = offset % (NUM_ROUNDS + 8);
         // Fixed values
         for (name, column, value) in &[
@@ -876,26 +879,29 @@ impl<F: Field> Sha256BitConfig<F> {
             ],
         )?;
 
+        let mut hash_cells = Vec::with_capacity(NUM_BYTES_FINAL_HASH);
         if !row.is_final || round != NUM_ROUNDS + 7 {
             for idx in 0..(NUM_BYTES_FINAL_HASH) {
-                region.assign_advice(
+                let cell = region.assign_advice(
                     || format!("final hash word at {}", idx),
                     self.final_hash_bytes[idx],
                     offset,
                     || Value::known(F::from(0u64)),
                 )?;
+                hash_cells.push(cell);
             }
         } else {
             for (idx, byte) in row.final_hash_bytes.iter().enumerate() {
-                region.assign_advice(
+                let cell = region.assign_advice(
                     || format!("final hash word at {}", idx),
                     self.final_hash_bytes[idx],
                     offset,
                     || Value::known(*byte),
                 )?;
+                hash_cells.push(cell);
             }
         }
-        Ok(())
+        Ok(hash_cells)
     }
 }
 
