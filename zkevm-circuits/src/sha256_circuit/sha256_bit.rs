@@ -216,6 +216,16 @@ impl<F: Field> Sha256BitChip<F> {
         self.size / (NUM_ROUNDS + 8) - 1
     }
 
+    /// Given the input, returns the assigned cells for the hash result.
+    pub fn digest(
+        &mut self,
+        layouter: impl Layouter<F>,
+        inputs: &[Vec<u8>],
+    ) -> Result<Vec<Vec<AssignedCell<F, F>>>, Error> {
+        let witness = multi_sha256(inputs, Sha256BitChip::r());
+        self.config.assign(layouter, self.size, &witness)
+    }
+
     /// Sets the witness using the data to be hashed
     pub fn generate_witness(&mut self, inputs: &[Vec<u8>]) {
         self.witness = multi_sha256(inputs, Sha256BitChip::r());
