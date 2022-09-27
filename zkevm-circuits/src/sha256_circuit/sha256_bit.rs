@@ -212,7 +212,7 @@ impl<F: Field> Sha256BitChip<F> {
 
     /// Given the input, returns the assigned cells for the hash result.
     pub fn digest(
-        &mut self,
+        &self,
         layouter: impl Layouter<F>,
         inputs: &[Vec<u8>],
     ) -> Result<Vec<Vec<AssignedCell<F, F>>>, Error> {
