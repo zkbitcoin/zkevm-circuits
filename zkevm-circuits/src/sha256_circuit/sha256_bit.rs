@@ -1169,8 +1169,8 @@ fn sha256<F: Field>(rows: &mut Vec<ShaRow<F>>, bytes: &[u8], r: F) {
         .collect::<Vec<_>>();
     debug!("hash: {:x?}", &hash_bytes);
     debug!("data rlc: {:x?}", data_rlc);
-    println!("hash: {:x?}", &hash_bytes);
-    println!("data rlc: {:x?}", data_rlc);
+    //println!("hash: {:x?}", &hash_bytes);
+    //println!("data rlc: {:x?}", data_rlc);
 }
 
 fn multi_sha256<F: Field>(bytes: &[Vec<u8>], r: F) -> Vec<ShaRow<F>> {
@@ -1211,11 +1211,7 @@ mod tests {
             layouter: impl Layouter<F>,
         ) -> Result<(), Error> {
             let sha256chip = Sha256BitChip::new(config.clone());
-            //sha256chip.generate_witness(&self.inputs);
             let cells_vec = sha256chip.digest(layouter, &self.inputs)?;
-            for (j, cell) in cells_vec[0].iter().enumerate() {
-                cell.value().map(|f| println!("j {}, val {:?}", j, f));
-            }
             Ok(())
         }
     }
