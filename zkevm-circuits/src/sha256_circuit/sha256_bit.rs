@@ -189,7 +189,6 @@ pub struct Sha256BitConfig<F> {
 /// Sha256BitCircuit
 #[derive(Clone, Debug)]
 pub struct Sha256BitChip<F: Field> {
-    witness: Vec<ShaRow<F>>,
     config: Sha256BitConfig<F>,
 }
 
@@ -202,10 +201,7 @@ impl<F: Field> Sha256BitChip<F> {
 impl<F: Field> Sha256BitChip<F> {
     /// Creates a new circuit instance
     pub fn new(config: Sha256BitConfig<F>) -> Self {
-        Sha256BitChip {
-            witness: Vec::new(),
-            config,
-        }
+        Sha256BitChip { config }
     }
 
     /// The number of sha256 permutations that can be done in this circuit
@@ -224,7 +220,7 @@ impl<F: Field> Sha256BitChip<F> {
         self.config.assign(layouter, &witness)
     }
 
-    /// Sets the witness using the data to be hashed
+    /*/// Sets the witness using the data to be hashed
     pub fn generate_witness(&mut self, inputs: &[Vec<u8>]) {
         self.witness = multi_sha256(inputs, Sha256BitChip::r());
     }
@@ -232,10 +228,11 @@ impl<F: Field> Sha256BitChip<F> {
     /// Sets the witness using the witness data directly
     fn set_witness(&mut self, witness: &[ShaRow<F>]) {
         self.witness = witness.to_vec();
-    }
+    }*/
 }
 
 impl<F: Field> Sha256BitConfig<F> {
+    /// Configure constraints for [`Sha256BitChip`]
     pub fn configure(meta: &mut ConstraintSystem<F>, r: F) -> Self {
         let q_enable = meta.fixed_column();
         let q_first = meta.fixed_column();
@@ -1209,8 +1206,8 @@ mod tests {
             layouter: impl Layouter<F>,
         ) -> Result<(), Error> {
             let mut sha256chip = Sha256BitChip::new(config.clone());
-            sha256chip.generate_witness(&self.inputs);
-            config.assign(layouter, &sha256chip.witness)?;
+            //sha256chip.generate_witness(&self.inputs);
+            sha256chip.digest(layouter, &self.inputs)?;
             Ok(())
         }
     }
