@@ -187,42 +187,26 @@ pub struct Sha256BitConfig<F> {
 }
 
 /// Sha256BitCircuit
-#[derive(Default, Clone, Debug)]
-pub struct Sha256BitCircuit<F: Field> {
+#[derive(Clone, Debug)]
+pub struct Sha256BitChip<F: Field> {
     witness: Vec<ShaRow<F>>,
     size: usize,
+    config: Sha256BitConfig<F>,
 }
 
-impl<F: Field> Sha256BitCircuit<F> {
+impl<F: Field> Sha256BitChip<F> {
     fn r() -> F {
         F::from(123456)
     }
 }
 
-impl<F: Field> Circuit<F> for Sha256BitCircuit<F> {
-    type Config = Sha256BitConfig<F>;
-    type FloorPlanner = SimpleFloorPlanner;
-
-    fn without_witnesses(&self) -> Self {
-        Self::default()
-    }
-
-    fn configure(meta: &mut ConstraintSystem<F>) -> Self::Config {
-        Sha256BitConfig::configure(meta, Sha256BitCircuit::r())
-    }
-
-    fn synthesize(&self, config: Self::Config, layouter: impl Layouter<F>) -> Result<(), Error> {
-        config.assign(layouter, self.size, &self.witness)?;
-        Ok(())
-    }
-}
-
-impl<F: Field> Sha256BitCircuit<F> {
+impl<F: Field> Sha256BitChip<F> {
     /// Creates a new circuit instance
-    pub fn new(size: usize) -> Self {
-        Sha256BitCircuit {
+    pub fn new(size: usize, config: Sha256BitConfig<F>) -> Self {
+        Sha256BitChip {
             witness: Vec::new(),
             size,
+            config,
         }
     }
 
@@ -234,7 +218,7 @@ impl<F: Field> Sha256BitCircuit<F> {
 
     /// Sets the witness using the data to be hashed
     pub fn generate_witness(&mut self, inputs: &[Vec<u8>]) {
-        self.witness = multi_sha256(inputs, Sha256BitCircuit::r());
+        self.witness = multi_sha256(inputs, Sha256BitChip::r());
     }
 
     /// Sets the witness using the witness data directly
@@ -913,126 +897,6 @@ impl<F: Field> Sha256BitConfig<F> {
         }
         Ok(())
     }
-
-    /*fn set_row_return_cells(
-        &self,
-        region: &mut Region<'_, F>,
-        offset: usize,
-        row: &ShaRow<F>,
-    ) -> Result<AssignedCell<F, F>, Error> {
-        let round = offset % (NUM_ROUNDS + 8);
-
-        // Fixed values
-        for (name, column, value) in &[
-            ("q_enable", self.q_enable, F::from(true)),
-            ("q_first", self.q_first, F::from(offset == 0)),
-            (
-                "q_extend",
-                self.q_extend,
-                F::from((4 + 16..4 + NUM_ROUNDS).contains(&round)),
-            ),
-            ("q_start", self.q_start, F::from(round < 4)),
-            (
-                "q_compression",
-                self.q_compression,
-                F::from((4..NUM_ROUNDS + 4).contains(&round)),
-            ),
-            ("q_end", self.q_end, F::from(round >= NUM_ROUNDS + 4)),
-            (
-                "q_padding",
-                self.q_padding,
-                F::from((4..20).contains(&round)),
-            ),
-            ("q_padding_last", self.q_padding_last, F::from(round == 19)),
-            (
-                "q_squeeze",
-                self.q_squeeze,
-                F::from(round == NUM_ROUNDS + 7),
-            ),
-            (
-                "round_cst",
-                self.round_cst,
-                F::from(if (4..NUM_ROUNDS + 4).contains(&round) {
-                    ROUND_CST[round - 4] as u64
-                } else {
-                    0
-                }),
-            ),
-            (
-                "Ha",
-                self.h_a,
-                F::from(if round < 4 { H[3 - round] as u64 } else { 0 }),
-            ),
-            (
-                "He",
-                self.h_e,
-                F::from(if round < 4 { H[7 - round] as u64 } else { 0 }),
-            ),
-        ] {
-            region.assign_fixed(
-                || format!("assign {} {}", name, offset),
-                *column,
-                offset,
-                || Value::known(*value),
-            )?;
-        }
-
-        // Advice values
-        for (name, columns, values) in [
-            ("w bits", self.word_w.as_slice(), row.w.as_slice()),
-            ("a bits", self.word_a.as_slice(), row.a.as_slice()),
-            ("e bits", self.word_e.as_slice(), row.e.as_slice()),
-            (
-                "padding selectors",
-                self.is_paddings.as_slice(),
-                row.is_paddings.as_slice(),
-            ),
-            (
-                "is_final",
-                [self.is_final].as_slice(),
-                [row.is_final].as_slice(),
-            ),
-        ] {
-            for (idx, (value, column)) in values.iter().zip(columns.iter()).enumerate() {
-                region.assign_advice(
-                    || format!("assign {} {} {}", name, idx, offset),
-                    *column,
-                    offset,
-                    || Value::known(F::from(*value)),
-                )?;
-            }
-        }
-
-        // Data rlcs
-        for (idx, (data_rlc, column)) in row.data_rlcs.iter().zip(self.data_rlcs.iter()).enumerate()
-        {
-            region.assign_advice(
-                || format!("assign data rlcs {} {}", idx, offset),
-                *column,
-                offset,
-                || Value::known(*data_rlc),
-            )?;
-        }
-
-        // Hash data
-        /*println!(
-            "enabled {:?}, hash_rlc {:?}",
-            F::from(row.is_final && round == NUM_ROUNDS + 7),
-            row.hash_rlc
-        );*/
-        let cells = self.hash_table.assign_row_return_cells(
-            region,
-            offset,
-            [
-                F::from(row.is_final && round == NUM_ROUNDS + 7),
-                row.data_rlc,
-                F::from(row.length as u64),
-                row.hash_rlc,
-            ],
-        )?;
-        //cells[3].value().map(|v| println!("output {:?}", *v));
-        Ok(cells[3].clone())
-    }*/
 }
 
 fn sha256<F: Field>(rows: &mut Vec<ShaRow<F>>, bytes: &[u8], r: F) {
@@ -1307,9 +1171,43 @@ mod tests {
     use super::*;
     use halo2_proofs::{dev::MockProver, halo2curves::bn256::Fr};
 
+    #[derive(Default, Debug, Clone)]
+    struct TestSha256<F: Field> {
+        k: u32,
+        inputs: Vec<Vec<u8>>,
+        _f: PhantomData<F>,
+    }
+
+    impl<F: Field> Circuit<F> for TestSha256<F> {
+        type Config = Sha256BitConfig<F>;
+        type FloorPlanner = SimpleFloorPlanner;
+
+        fn without_witnesses(&self) -> Self {
+            unimplemented!()
+        }
+
+        fn configure(meta: &mut ConstraintSystem<F>) -> Self::Config {
+            Sha256BitConfig::configure(meta, Sha256BitChip::r())
+        }
+
+        fn synthesize(
+            &self,
+            config: Self::Config,
+            layouter: impl Layouter<F>,
+        ) -> Result<(), Error> {
+            let mut sha256chip = Sha256BitChip::new(2usize.pow(self.k), config.clone());
+            sha256chip.generate_witness(&self.inputs);
+            config.assign(layouter, sha256chip.size, &sha256chip.witness)?;
+            Ok(())
+        }
+    }
+
     fn verify<F: Field>(k: u32, inputs: Vec<Vec<u8>>, success: bool) {
-        let mut circuit = Sha256BitCircuit::new(2usize.pow(k));
-        circuit.generate_witness(&inputs);
+        let circuit = TestSha256 {
+            k: 10,
+            inputs,
+            _f: PhantomData,
+        };
 
         let prover = MockProver::<F>::run(k, &circuit, vec![]).unwrap();
         let verify_result = prover.verify();
