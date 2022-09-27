@@ -236,7 +236,7 @@ impl<F: Field> Sha256BitChip<F> {
 }
 
 impl<F: Field> Sha256BitConfig<F> {
-    pub(crate) fn configure(meta: &mut ConstraintSystem<F>, r: F) -> Self {
+    pub fn configure(meta: &mut ConstraintSystem<F>, r: F) -> Self {
         let q_enable = meta.fixed_column();
         let q_first = meta.fixed_column();
         let q_extend = meta.fixed_column();
