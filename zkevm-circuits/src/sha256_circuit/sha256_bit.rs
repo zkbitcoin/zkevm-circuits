@@ -157,7 +157,7 @@ struct ShaRow<F> {
     final_hash_bytes: [F; NUM_BYTES_FINAL_HASH],
 }
 
-/// Sha256BitConfig
+/// Configuration for [`Sha256BitChip`].
 #[derive(Clone, Debug)]
 pub struct Sha256BitConfig<F> {
     q_enable: Column<Fixed>,
@@ -186,7 +186,7 @@ pub struct Sha256BitConfig<F> {
     _marker: PhantomData<F>,
 }
 
-/// Sha256BitCircuit
+/// Chip for the SHA256 hash function.
 #[derive(Clone, Debug)]
 pub struct Sha256BitChip<F: Field> {
     config: Sha256BitConfig<F>,
@@ -199,18 +199,32 @@ impl<F: Field> Sha256BitChip<F> {
 }
 
 impl<F: Field> Sha256BitChip<F> {
-    /// Creates a new circuit instance
+    /// Create a new [`Sha256BitChip`] from the configuration.
+    ///
+    /// # Arguments
+    /// * config - a configuration for [`Sha256BitChip`].
+    ///
+    /// # Return values
+    /// Returns a new [`Sha256BitChip`]
     pub fn new(config: Sha256BitConfig<F>) -> Self {
         Sha256BitChip { config }
     }
 
-    /// The number of sha256 permutations that can be done in this circuit
-    /*pub fn capacity(&self) -> usize {
+    /*/// The number of sha256 permutations that can be done in this circuit
+    pub fn capacity(&self) -> usize {
         // Subtract one for unusable rows
         self.size / (NUM_ROUNDS + 8) - 1
     }*/
 
-    /// Given the input, returns the assigned cells for the hash result.
+    /// Given the input, returns a vector of the assigned cells for the hash
+    /// results.
+    ///
+    /// # Arguments
+    /// * layouter - a layouter of the constraints system.
+    /// * inputs - a vector of input bytes.
+    ///
+    /// # Return values
+    /// Returns a vector of the assigned cells for the hash results.
     pub fn digest(
         &self,
         layouter: impl Layouter<F>,
