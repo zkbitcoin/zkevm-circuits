@@ -247,7 +247,8 @@ impl<F: Field> Sha256BitChip<F> {
 
 impl<F: Field> Sha256BitConfig<F> {
     /// Configure constraints for [`Sha256BitChip`]
-    pub fn configure(meta: &mut ConstraintSystem<F>, r: F) -> Self {
+    pub fn configure(meta: &mut ConstraintSystem<F>) -> Self {
+        let r = Sha256BitChip::r();
         let q_enable = meta.fixed_column();
         let q_first = meta.fixed_column();
         let q_extend = meta.fixed_column();
@@ -1216,7 +1217,7 @@ mod tests {
         }
 
         fn configure(meta: &mut ConstraintSystem<F>) -> Self::Config {
-            Sha256BitConfig::configure(meta, Sha256BitChip::r())
+            Sha256BitConfig::configure(meta)
         }
 
         fn synthesize(
@@ -1249,7 +1250,6 @@ mod tests {
         }
     }
 
-    use hex;
     #[test]
     fn bit_sha256_simple() {
         let k = 10;
