@@ -17,9 +17,10 @@ use halo2_proofs::{
 use std::iter;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use core::marker::ConstParamTy;
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, EnumIter, ConstParamTy)]
 pub enum ExecutionState {
     // Internal state
     BeginTx,

@@ -1515,20 +1515,15 @@ name = "halo2_proofs"
 version = "0.2.0"
 dependencies = [
  "blake2b_simd",
- "crossbeam-channel",
  "ff",
  "group",
  "halo2curves",
- "lazy_static",
- "log",
- "num_cpus",
  "plotters",
  "rand_core",
  "rayon",
  "tabbycat",
  "tracing",
  "wasm-bindgen-rayon",
- "web-sys",
 ]
 
 [[package]]

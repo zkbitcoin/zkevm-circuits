@@ -9,6 +9,7 @@ pub mod opcode_ids;
 pub mod stack;
 pub mod storage;
 
+
 pub use {
     memory::{Memory, MemoryAddress},
     opcode_ids::OpcodeId,
@@ -67,8 +68,10 @@ pub const MAX_REFUND_QUOTIENT_OF_GAS_USED: usize = 5;
 /// Gas stipend when CALL or CALLCODE is attached with value.
 pub const GAS_STIPEND_CALL_WITH_VALUE: u64 = 2300;
 
+use core::marker::ConstParamTy;
+
 /// Defines the gas consumption.
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize, ConstParamTy)]
 pub struct GasCost(pub u64);
 
 impl fmt::Debug for GasCost {
